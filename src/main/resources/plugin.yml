@@ -1,0 +1,12 @@
+name: BoltWorldGuard
+version: '${version}'
+main: org.popcraft.boltworldguard.BoltWorldGuard
+api-version: 1.19
+depend: [ Bolt, WorldGuard ]
+commands:
+  protectregion:
+    description: Protect in a region
+    permission: bolt.command.admin
+  purgeregion:
+    description: Purge in a region
+    permission: bolt.command.admin
