@@ -8,6 +8,7 @@ import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -21,6 +22,7 @@ import org.popcraft.bolt.source.SourceTypes;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 public final class BoltWorldGuard extends JavaPlugin implements Listener {
     private BoltAPI bolt;
@@ -102,6 +104,23 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
             sender.sendMessage("Region doesn't exist!");
             return false;
         }
+        Material material = null;
+        UUID owner = null;
+        String type = null;
+        for (final String arg : args) {
+            final String[] split = arg.split(":");
+            if (split.length < 2) {
+                continue;
+            }
+            switch(split[0]) {
+                case "block" -> material = Material.matchMaterial(split[1].toUpperCase());
+                case "owner" -> //noinspection deprecation
+                        owner = Bukkit.getOfflinePlayer(split[1]).getUniqueId();
+                case "type" -> type = split[1];
+            }
+        }
+        final UUID protectOwner = owner == null ? player.getUniqueId() : owner;
+        final String protectType = type == null ? "private" : type;
         final BlockVector3 minimum = protectedRegion.getMinimumPoint();
         final BlockVector3 maximum = protectedRegion.getMaximumPoint();
         final int minBlockX = minimum.getBlockX();
@@ -117,14 +136,27 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
                     final Block block = bukkitWorld.getBlockAt(x, y, z);
                     if (purge) {
                         final Protection protection = bolt.findProtection(block);
-                        if (protection != null) {
-                            bolt.removeProtection(protection);
+                        if (protection == null) {
+                            continue;
                         }
+                        if (material != null && protection instanceof final BlockProtection blockProtection && !blockProtection.getBlock().equalsIgnoreCase(material.name())) {
+                            continue;
+                        }
+                        if (owner != null && !protection.getOwner().equals(owner)) {
+                            continue;
+                        }
+                        if (type != null && !protection.getType().equalsIgnoreCase(type)) {
+                            continue;
+                        }
+                        bolt.removeProtection(protection);
                     } else {
                         if (!bolt.isProtectable(block) || bolt.isProtected(block)) {
                             continue;
                         }
-                        final BlockProtection blockProtection = bolt.createProtection(block, player.getUniqueId(), "private");
+                        if (material != null && !material.equals(block.getType())) {
+                            continue;
+                        }
+                        final BlockProtection blockProtection = bolt.createProtection(block, protectOwner, protectType);
                         bolt.saveProtection(blockProtection);
                     }
                 }
