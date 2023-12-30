@@ -19,6 +19,7 @@ import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 import org.popcraft.bolt.BoltAPI;
 import org.popcraft.bolt.protection.BlockProtection;
+import org.popcraft.bolt.protection.EntityProtection;
 import org.popcraft.bolt.protection.Protection;
 import org.popcraft.bolt.source.SourceTypes;
 
@@ -139,6 +140,9 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
         if (purge) {
             final Collection<Protection> protections = bolt.findProtections(bukkitWorld, boundingBox);
             for (final Protection protection : protections) {
+                if (protection instanceof EntityProtection) {
+                    continue;
+                }
                 if (material != null && protection instanceof final BlockProtection blockProtection && !blockProtection.getBlock().equalsIgnoreCase(material.name())) {
                     continue;
                 }
