@@ -15,11 +15,14 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.BoundingBox;
+import org.bukkit.util.Vector;
 import org.popcraft.bolt.BoltAPI;
 import org.popcraft.bolt.protection.BlockProtection;
 import org.popcraft.bolt.protection.Protection;
 import org.popcraft.bolt.source.SourceTypes;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -112,7 +115,7 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
             if (split.length < 2) {
                 continue;
             }
-            switch(split[0]) {
+            switch (split[0]) {
                 case "block" -> material = Material.matchMaterial(split[1].toUpperCase());
                 case "owner" -> //noinspection deprecation
                         owner = Bukkit.getOfflinePlayer(split[1]).getUniqueId();
@@ -129,27 +132,29 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
         final int maxBlockX = maximum.getBlockX();
         final int maxBlockY = maximum.getBlockY();
         final int maxBlockZ = maximum.getBlockZ();
+        final Vector min = new Vector(minBlockX, minBlockY, minBlockZ);
+        final Vector max = new Vector(maxBlockX, maxBlockY, maxBlockZ);
+        final BoundingBox boundingBox = BoundingBox.of(min, max);
         final boolean purge = "purgeregion".equals(command.getName());
-        for (int x = minBlockX; x <= maxBlockX; x++) {
-            for (int y = minBlockY; y <= maxBlockY; y++) {
-                for (int z = minBlockZ; z <= maxBlockZ; z++) {
-                    final Block block = bukkitWorld.getBlockAt(x, y, z);
-                    if (purge) {
-                        final Protection protection = bolt.findProtection(block);
-                        if (protection == null) {
-                            continue;
-                        }
-                        if (material != null && protection instanceof final BlockProtection blockProtection && !blockProtection.getBlock().equalsIgnoreCase(material.name())) {
-                            continue;
-                        }
-                        if (owner != null && !protection.getOwner().equals(owner)) {
-                            continue;
-                        }
-                        if (type != null && !protection.getType().equalsIgnoreCase(type)) {
-                            continue;
-                        }
-                        bolt.removeProtection(protection);
-                    } else {
+        if (purge) {
+            final Collection<Protection> protections = bolt.findProtections(bukkitWorld, boundingBox);
+            for (final Protection protection : protections) {
+                if (material != null && protection instanceof final BlockProtection blockProtection && !blockProtection.getBlock().equalsIgnoreCase(material.name())) {
+                    continue;
+                }
+                if (owner != null && !protection.getOwner().equals(owner)) {
+                    continue;
+                }
+                if (type != null && !protection.getType().equalsIgnoreCase(type)) {
+                    continue;
+                }
+                bolt.removeProtection(protection);
+            }
+        } else {
+            for (int x = minBlockX; x <= maxBlockX; x++) {
+                for (int y = minBlockY; y <= maxBlockY; y++) {
+                    for (int z = minBlockZ; z <= maxBlockZ; z++) {
+                        final Block block = bukkitWorld.getBlockAt(x, y, z);
                         if (!bolt.isProtectable(block) || bolt.isProtected(block)) {
                             continue;
                         }
