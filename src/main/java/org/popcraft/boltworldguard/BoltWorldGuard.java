@@ -5,8 +5,6 @@ import com.sk89q.worldedit.world.World;
 import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
-import com.sk89q.worldguard.bukkit.cause.Cause;
-import com.sk89q.worldguard.bukkit.event.block.PlaceBlockEvent;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import org.bukkit.Bukkit;
@@ -30,9 +28,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-
-import static com.sk89q.worldguard.bukkit.event.DelegateEvents.setSilent;
-import static com.sk89q.worldguard.bukkit.util.Events.fireAndTestCancel;
 
 public final class BoltWorldGuard extends JavaPlugin implements Listener {
     private BoltAPI bolt;
@@ -74,7 +69,7 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
             }
             return false;
         });
-        bolt.registerEvent(LockBlockEvent.class, event -> {
+        bolt.registerListener(LockBlockEvent.class, event -> {
             final boolean cancel = !worldGuardPlugin.createProtectionQuery().testBlockPlace(
                 event.getPlayer(),
                 event.getBlock().getLocation(),
