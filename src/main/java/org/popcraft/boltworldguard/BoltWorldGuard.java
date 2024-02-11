@@ -18,6 +18,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 import org.popcraft.bolt.BoltAPI;
+import org.popcraft.bolt.event.LockBlockEvent;
 import org.popcraft.bolt.protection.BlockProtection;
 import org.popcraft.bolt.protection.EntityProtection;
 import org.popcraft.bolt.protection.Protection;
@@ -67,6 +68,16 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
                 return protectedRegion != null && protectedRegion.isMember(localPlayer);
             }
             return false;
+        });
+        bolt.registerListener(LockBlockEvent.class, event -> {
+            final boolean cancel = !worldGuardPlugin.createProtectionQuery().testBlockPlace(
+                event.getPlayer(),
+                event.getBlock().getLocation(),
+                event.getBlock().getType()
+            );
+            if (cancel) {
+                event.setCancelled(true);
+            }
         });
     }
 
