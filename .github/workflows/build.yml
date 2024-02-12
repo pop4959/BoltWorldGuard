@@ -24,4 +24,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: BoltWorldGuard
-          path: "bukkit/build/libs/BoltWorldGuard-*.jar"
+          path: "build/libs/BoltWorldGuard-*.jar"
