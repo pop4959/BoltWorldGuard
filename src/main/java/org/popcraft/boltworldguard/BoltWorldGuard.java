@@ -19,17 +19,20 @@ import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 import org.popcraft.bolt.BoltAPI;
 import org.popcraft.bolt.event.LockBlockEvent;
+import org.popcraft.bolt.event.LockEntityEvent;
 import org.popcraft.bolt.protection.BlockProtection;
 import org.popcraft.bolt.protection.EntityProtection;
 import org.popcraft.bolt.protection.Protection;
 import org.popcraft.bolt.source.SourceTypes;
 
+import java.lang.module.ModuleDescriptor.Version;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 public final class BoltWorldGuard extends JavaPlugin implements Listener {
+    private static final Version EXPECTED_BOLT_VERSION = Version.parse("1.0.575");
     private BoltAPI bolt;
     private WorldGuardPlugin worldGuardPlugin;
 
@@ -37,6 +40,13 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
     public void onEnable() {
         this.bolt = getServer().getServicesManager().load(BoltAPI.class);
         if (bolt == null) {
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        final Version boltVersion = Version.parse(getServer().getPluginManager().getPlugin("Bolt").getDescription().getVersion());
+        if (boltVersion.compareTo(EXPECTED_BOLT_VERSION) < 0) {
+            getLogger().severe("Your version of Bolt is too old to integrate with this version of BoltWorldGuard");
+            getLogger().severe("Expected at least version " + EXPECTED_BOLT_VERSION + ", but you have version " + boltVersion);
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -74,6 +84,16 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
                 event.getPlayer(),
                 event.getBlock().getLocation(),
                 event.getBlock().getType()
+            );
+            if (cancel) {
+                event.setCancelled(true);
+            }
+        });
+        bolt.registerListener(LockEntityEvent.class, event -> {
+            final boolean cancel = !worldGuardPlugin.createProtectionQuery().testEntityPlace(
+                event.getPlayer(),
+                event.getEntity().getLocation(),
+                event.getEntity().getType()
             );
             if (cancel) {
                 event.setCancelled(true);
