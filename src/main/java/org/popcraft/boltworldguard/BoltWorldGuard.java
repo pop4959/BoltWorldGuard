@@ -1,10 +1,13 @@
 package org.popcraft.boltworldguard;
 
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.util.Location;
 import com.sk89q.worldedit.world.World;
 import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
+import com.sk89q.worldguard.protection.flags.StateFlag;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import org.bukkit.Bukkit;
@@ -35,6 +38,18 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
     private static final Version EXPECTED_BOLT_VERSION = Version.parse("1.0.575");
     private BoltAPI bolt;
     private WorldGuardPlugin worldGuardPlugin;
+    private StateFlag boltProtectionsFlag;
+
+    @Override
+    public void onLoad() {
+        this.worldGuardPlugin = (WorldGuardPlugin) getServer().getPluginManager().getPlugin("WorldGuard");
+        if (worldGuardPlugin == null) {
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        this.boltProtectionsFlag = new StateFlag("bolt-protections", false);
+        WorldGuard.getInstance().getFlagRegistry().register(this.boltProtectionsFlag);
+    }
 
     @Override
     public void onEnable() {
@@ -47,11 +62,6 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
         if (boltVersion.compareTo(EXPECTED_BOLT_VERSION) < 0) {
             getLogger().severe("Your version of Bolt is too old to integrate with this version of BoltWorldGuard");
             getLogger().severe("Expected at least version " + EXPECTED_BOLT_VERSION + ", but you have version " + boltVersion);
-            getServer().getPluginManager().disablePlugin(this);
-            return;
-        }
-        this.worldGuardPlugin = (WorldGuardPlugin) getServer().getPluginManager().getPlugin("WorldGuard");
-        if (worldGuardPlugin == null) {
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -80,23 +90,47 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
             return false;
         });
         bolt.registerListener(LockBlockEvent.class, event -> {
-            final boolean cancel = !worldGuardPlugin.createProtectionQuery().testBlockPlace(
-                event.getPlayer(),
-                event.getBlock().getLocation(),
-                event.getBlock().getType()
-            );
-            if (cancel) {
+            final LocalPlayer player = worldGuardPlugin.wrapPlayer(event.getPlayer());
+            final Location location = BukkitAdapter.adapt(event.getBlock().getLocation());
+            final StateFlag.State state = WorldGuard.getInstance().getPlatform().getRegionContainer().createQuery()
+                    .queryState(location, player, this.boltProtectionsFlag);
+            if (state == StateFlag.State.ALLOW) {
+                // Allow: Always allow the lock
+            } else if (state == StateFlag.State.DENY) {
+                // Deny: Never allow the lock
                 event.setCancelled(true);
+            } else if (state == null) {
+                // Unset: based on whether the player can place blocks.
+                final boolean cancel = !worldGuardPlugin.createProtectionQuery().testBlockPlace(
+                        event.getPlayer(),
+                        event.getBlock().getLocation(),
+                        event.getBlock().getType()
+                );
+                if (cancel) {
+                    event.setCancelled(true);
+                }
             }
         });
         bolt.registerListener(LockEntityEvent.class, event -> {
-            final boolean cancel = !worldGuardPlugin.createProtectionQuery().testEntityPlace(
-                event.getPlayer(),
-                event.getEntity().getLocation(),
-                event.getEntity().getType()
-            );
-            if (cancel) {
+            final LocalPlayer player = worldGuardPlugin.wrapPlayer(event.getPlayer());
+            final Location location = BukkitAdapter.adapt(event.getEntity().getLocation());
+            final StateFlag.State state = WorldGuard.getInstance().getPlatform().getRegionContainer().createQuery()
+                    .queryState(location, player, this.boltProtectionsFlag);
+            if (state == StateFlag.State.ALLOW) {
+                // Allow: Always allow the lock
+            } else if (state == StateFlag.State.DENY) {
+                // Deny: Never allow the lock
                 event.setCancelled(true);
+            } else if (state == null) {
+                // Unset: based on whether the player can place entities.
+                final boolean cancel = !worldGuardPlugin.createProtectionQuery().testEntityPlace(
+                        event.getPlayer(),
+                        event.getEntity().getLocation(),
+                        event.getEntity().getType()
+                );
+                if (cancel) {
+                    event.setCancelled(true);
+                }
             }
         });
     }
