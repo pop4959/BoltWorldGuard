@@ -11,7 +11,9 @@ import com.sk89q.worldguard.protection.flags.StateFlag;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -202,6 +204,7 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
         final Vector max = new Vector(maxBlockX, maxBlockY, maxBlockZ);
         final BoundingBox boundingBox = BoundingBox.of(min, max);
         final boolean purge = "purgeregion".equals(command.getName());
+        final boolean listprotections = "listprotections".equals(command.getName());
         if (purge) {
             final Collection<Protection> protections = bolt.findProtections(bukkitWorld, boundingBox);
             for (final Protection protection : protections) {
@@ -217,6 +220,21 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
                 if (type != null && !protection.getType().equalsIgnoreCase(type)) {
                     continue;
                 }
+                bolt.removeProtection(protection);
+            }
+        } else if (listprotections) {
+            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',"&6Protections from &7"+region+":"));
+            sender.sendMessage(ChatColor.DARK_GRAY+"-----------------------------");
+
+            final Collection<Protection> protections = bolt.findProtections(bukkitWorld, boundingBox);
+            for (final Protection protection : protections) {
+                if (protection instanceof EntityProtection) {
+                    continue;
+                }
+                BlockProtection blockProtection = (BlockProtection) protection;
+                String coordinates = blockProtection.getX()+", "+blockProtection.getY()+", "+blockProtection.getZ();
+                Player regionOwner = Bukkit.getPlayer(protection.getOwner());
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&6"+blockProtection.getBlock() + ": &7" + coordinates + " (&c"+regionOwner.getDisplayName()+"&7)"));
                 bolt.removeProtection(protection);
             }
         } else {
@@ -238,6 +256,8 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
         }
         if (purge) {
             sender.sendMessage("Purged region %s".formatted(region));
+        } else if (listprotections) {
+            sender.sendMessage(ChatColor.DARK_GRAY+"-----------------------------");
         } else {
             sender.sendMessage("Protected region %s".formatted(region));
         }

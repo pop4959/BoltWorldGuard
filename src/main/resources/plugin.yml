@@ -10,3 +10,6 @@ commands:
   purgeregion:
     description: Purge in a region
     permission: bolt.command.admin
+  listprotections:
+      description: List protections in a region
+      permission: bolt.command.admin
