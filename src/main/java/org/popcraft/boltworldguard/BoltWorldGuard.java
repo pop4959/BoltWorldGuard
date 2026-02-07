@@ -223,15 +223,21 @@ public final class BoltWorldGuard extends JavaPlugin implements Listener {
             for (int x = minBlockX; x <= maxBlockX; x++) {
                 for (int y = minBlockY; y <= maxBlockY; y++) {
                     for (int z = minBlockZ; z <= maxBlockZ; z++) {
-                        final Block block = bukkitWorld.getBlockAt(x, y, z);
-                        if (!bolt.isProtectable(block) || bolt.isProtected(block)) {
-                            continue;
-                        }
-                        if (material != null && !material.equals(block.getType())) {
-                            continue;
-                        }
-                        final BlockProtection blockProtection = bolt.createProtection(block, protectOwner, protectType);
-                        bolt.saveProtection(blockProtection);
+                        final Material finalMaterial = material;
+                        final int finalX = x;
+                        final int finalY = y;
+                        final int finalZ = z;
+                        Bukkit.getRegionScheduler().execute(this, bukkitWorld, x >> 4, z >> 4, () -> {
+                            final Block block = bukkitWorld.getBlockAt(finalX, finalY, finalZ);
+                            if (!bolt.isProtectable(block) || bolt.isProtected(block)) {
+                                return;
+                            }
+                            if (finalMaterial != null && !finalMaterial.equals(block.getType())) {
+                                return;
+                            }
+                            final BlockProtection blockProtection = bolt.createProtection(block, protectOwner, protectType);
+                            bolt.saveProtection(blockProtection);
+                        });
                     }
                 }
             }

@@ -3,6 +3,7 @@ version: '${version}'
 main: org.popcraft.boltworldguard.BoltWorldGuard
 api-version: 1.19
 depend: [ Bolt, WorldGuard ]
+folia-supported: true
 commands:
   protectregion:
     description: Protect in a region
